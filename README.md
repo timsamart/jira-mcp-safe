@@ -1,0 +1,2 @@
+# jira-mcp-safe
+
