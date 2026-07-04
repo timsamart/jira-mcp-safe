@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Jira Safely"
+  short_description: "Create and update Jira with safe previews"
+  default_prompt: "Use $manage-jira-safely to create or update Jira issues with an exact reviewed plan."

@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { loadConfig } from "./config.js";
+import { createServer } from "./server.js";
+
+async function main() {
+  const config = loadConfig();
+  const { server } = createServer(config);
+  await server.connect(new StdioServerTransport());
+}
+
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : "Unknown startup error";
+  process.stderr.write(`jira-mcp-safe: ${message}\n`);
+  process.exitCode = 1;
+});

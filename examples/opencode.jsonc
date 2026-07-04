@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "jira_safe": {
+      "type": "local",
+      "command": ["node", "H:/repos/jira-conf-mcp/jira-mcp-safe/dist/src/index.js"],
+      "enabled": true,
+      "environment": {
+        "JIRA_BASE_URL": "{env:JIRA_BASE_URL}",
+        "JIRA_DEPLOYMENT": "{env:JIRA_DEPLOYMENT}",
+        "JIRA_TOKEN": "{env:JIRA_TOKEN}",
+        "JIRA_EMAIL": "{env:JIRA_EMAIL}",
+        "JIRA_CONNECTION_ID": "{env:JIRA_CONNECTION_ID}",
+        "JIRA_ALLOWED_PROJECTS": "{env:JIRA_ALLOWED_PROJECTS}",
+        "JIRA_ALLOWED_WRITE_FIELDS": "{env:JIRA_ALLOWED_WRITE_FIELDS}"
+      }
+    }
+  },
+  "permission": {
+    "jira_safe_*": "ask",
+    "jira_safe_jira_capabilities_get": "allow",
+    "jira_safe_jira_identity_get": "allow",
+    "jira_safe_jira_projects_list": "allow",
+    "jira_safe_jira_issue_get": "allow",
+    "jira_safe_jira_issue_search": "allow",
+    "jira_safe_jira_issue_transitions_list": "allow",
+    "jira_safe_jira_issue_create_schema_get": "allow",
+    "jira_safe_jira_issue_create_plan": "allow",
+    "jira_safe_jira_issue_create_from_issue_plan": "allow",
+    "jira_safe_jira_issue_update_plan": "allow"
+  }
+}

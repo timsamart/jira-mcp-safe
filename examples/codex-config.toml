@@ -1,0 +1,31 @@
+[mcp_servers.jira_safe]
+command = "node"
+args = ["H:/repos/jira-conf-mcp/jira-mcp-safe/dist/src/index.js"]
+env_vars = ["JIRA_BASE_URL", "JIRA_DEPLOYMENT", "JIRA_TOKEN", "JIRA_EMAIL", "JIRA_CONNECTION_ID", "JIRA_ALLOWED_PROJECTS", "JIRA_ALLOWED_WRITE_FIELDS", "JIRA_MAX_RESULTS", "JIRA_PLAN_TTL_SECONDS"]
+default_tools_approval_mode = "prompt"
+
+# Known read and local-plan operations may run without a UI prompt. Any future
+# tool inherits "prompt" until it is reviewed and explicitly listed here.
+[mcp_servers.jira_safe.tools.jira_capabilities_get]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_identity_get]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_projects_list]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_issue_get]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_issue_search]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_issue_transitions_list]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_issue_create_schema_get]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_issue_create_plan]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_issue_create_from_issue_plan]
+approval_mode = "auto"
+[mcp_servers.jira_safe.tools.jira_issue_update_plan]
+approval_mode = "auto"
+
+# Intentionally omitted: jira_change_apply inherits "prompt" and therefore
+# requires a user approval in Codex before the MCP call reaches the server.
