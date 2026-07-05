@@ -15,13 +15,53 @@ node dist/src/index.js
 
 Copy `.env.example` into your secret-injection system; this project intentionally does not load `.env` files itself. Configure an MCP client to launch `node /absolute/path/to/dist/src/index.js` with the variables in its environment.
 
+## Windows PowerShell setup
+
+Persist the runtime variables once per Windows user profile:
+
+```powershell
+$vars = @{
+  JIRA_BASE_URL = 'https://example.atlassian.net'
+  JIRA_DEPLOYMENT = 'cloud' # use 'data_center' for Jira Server/Data Center
+  JIRA_EMAIL = 'you@example.com' # cloud only
+  JIRA_TOKEN = 'replace-at-runtime'
+  JIRA_CONNECTION_ID = 'work'
+  JIRA_ALLOWED_PROJECTS = 'APP,PLATFORM'
+  JIRA_ALLOWED_WRITE_FIELDS = 'summary,description,assignee,priority,labels,duedate,components,fixVersions'
+  JIRA_MAX_RESULTS = '50'
+  JIRA_PLAN_TTL_SECONDS = '600'
+}
+
+foreach ($pair in $vars.GetEnumerator()) {
+  [Environment]::SetEnvironmentVariable($pair.Key, $pair.Value, 'User')
+}
+```
+
+Open a new PowerShell session after running that snippet so the new user variables are visible immediately.
+
+## Deployment modes
+
+| Mode | Base URL | Email | Token | Auth shape |
+| --- | --- | --- | --- | --- |
+| Cloud | `https://your-domain.atlassian.net` | required | Jira API token | Basic auth with email + token |
+| Data Center | `https://jira.company.tld[/context]` | omit | Jira PAT | Bearer token |
+
+`JIRA_DEPLOYMENT` switches the API paths and auth method. `JIRA_ALLOWED_PROJECTS` accepts a comma-separated allowlist or `*`, and `JIRA_ALLOWED_WRITE_FIELDS` defaults to the safe common-field set if you leave it unset.
+
 ## Codex and OpenCode
 
-After building, copy the matching file from `examples/` into your client configuration and replace its checked-in absolute server path with this checkout's `dist/src/index.js`. To install the workflow skill for either client, copy `skills/manage-jira-safely` to the shared user location `$HOME/.agents/skills/manage-jira-safely` (or to `.agents/skills/manage-jira-safely` in a target repository). Restart the client if the skill is not discovered immediately.
+Codex users can keep using `examples/codex-config.toml` or copy the same server block into their local config.
 
-The examples allow reads and planning tools but leave `jira_change_apply` behind a one-time UI prompt. That apply tool also advertises `destructiveHint: true`; do not weaken the wildcard/default prompt rule.
+OpenCode users should run the matching installer in each repo they want to expose after the first build:
 
-The MVP exposes identity, capabilities, allowed projects, bounded issue search/read, transitions, native create-schema discovery, metadata-validated direct or issue-as-template creation, exact updates, idempotent creation planning, and one-time verified apply. Ticket templates copy only explicitly selected fields from an exact source issue version; Jira has no generic native issue-template REST entity. Use the checked-in Codex/OpenCode examples to require a real UI approval before apply; see [client approvals](docs/CLIENT_APPROVALS.md), [architecture](docs/ARCHITECTURE.md), the [product concept](CONCEPT.md), and the [full proposed catalog](docs/TOOL_CATALOG.md).
+```powershell
+pwsh -ExecutionPolicy Bypass -File .\scripts\install-opencode.ps1
+```
+
+The script builds `dist/src/index.js` if it is missing, then merges a `jira_safe` entry into the shared OpenCode config at `~/.config/opencode/opencode.json`. It keeps unrelated settings intact and points OpenCode at this checkout through the env vars you set above.
+Pass `-ConfigPath` if your OpenCode config lives somewhere else.
+
+The checked-in `examples/opencode.jsonc` remains available as a manual fallback, but it no longer needs hand-editing for the local path.
 
 ## Safety boundary
 
