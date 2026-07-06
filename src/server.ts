@@ -23,6 +23,14 @@ export function createServer(config: Config, client: JiraPort = new JiraClient(c
     });
   };
 
+  function enforceProjectPolicy(projectKey: string): string {
+    const key = projectKey.toUpperCase();
+    if (config.allowedProjects !== "*" && !config.allowedProjects.has(key)) {
+      throw new SafeError("POLICY_DENIED", `Project ${key} is outside JIRA_ALLOWED_PROJECTS`);
+    }
+    return key;
+  }
+
   function validateFieldPatch(fields: Record<string, unknown>, editMetadata: Record<string, unknown>): Array<{ fieldId: string; name: string }> {
     const metadataFields = editMetadata.fields as Record<string, unknown> | undefined;
     if (!metadataFields) throw new SafeError("FIELD_NOT_EDITABLE", "Jira did not return edit metadata; refusing to infer field IDs");
@@ -76,6 +84,7 @@ export function createServer(config: Config, client: JiraPort = new JiraClient(c
 
   async function validateParent(parentKey: string | undefined, projectKey: string) {
     if (!parentKey) return;
+    enforceProjectPolicy(parentKey.split("-")[0] ?? "");
     const parent = await client.issue(parentKey, ["project", "issuetype", "summary", "updated"]);
     if (parent.key !== parentKey) throw new SafeError("INVALID_INPUT", "Parent key is not the exact canonical Jira issue key");
     const parentProject = ((parent.fields as Record<string, unknown> | undefined)?.project as Record<string, unknown> | undefined)?.key;
@@ -86,7 +95,7 @@ export function createServer(config: Config, client: JiraPort = new JiraClient(c
     projectKey: string; issueTypeId: string; parentKey?: string; fields: Record<string, unknown>; idempotencyKey: string;
     sourceIssue?: { key: string; updated: string; copiedFieldIds: string[]; overriddenFieldIds: string[] };
   }) {
-    const key = input.projectKey.toUpperCase();
+    const key = enforceProjectPolicy(input.projectKey);
     const canonicalParent = input.parentKey?.toUpperCase();
     const [project, issueType, metadata] = await Promise.all([client.project(key), client.issueType(input.issueTypeId), client.createSchema(key, input.issueTypeId), validateParent(canonicalParent, key)]);
     if (project.key !== key || typeof project.id !== "string" && typeof project.id !== "number") throw new SafeError("INVALID_INPUT", "Project key did not resolve exactly");
@@ -168,7 +177,9 @@ export function createServer(config: Config, client: JiraPort = new JiraClient(c
   }, async ({ sourceIssueKey, sourceExpectedUpdated, copyFieldIds, overrides, projectKey, issueTypeId, parentKey, idempotencyKey }) => {
     const reserved = [...copyFieldIds, ...Object.keys(overrides)].filter((field) => ["project", "issuetype", "parent", "updated", "created", "status", "key"].includes(field));
     if (reserved.length) throw new SafeError("INVALID_INPUT", `Fields cannot be copied or overridden by the template workflow: ${[...new Set(reserved)].join(", ")}`);
+    const targetProjectKey = enforceProjectPolicy(projectKey);
     const sourceKey = sourceIssueKey.toUpperCase();
+    enforceProjectPolicy(sourceKey.split("-")[0] ?? "");
     const source = await client.issue(sourceKey, [...copyFieldIds, "updated"]);
     if (source.key !== sourceKey) throw new SafeError("INVALID_INPUT", "Source issue did not resolve to the exact canonical key");
     const sourceFields = source.fields as Record<string, unknown> | undefined;
@@ -178,7 +189,7 @@ export function createServer(config: Config, client: JiraPort = new JiraClient(c
     const copied = Object.fromEntries(copyFieldIds.map((fieldId) => [fieldId, structuredClone(sourceFields[fieldId])]));
     const fields = { ...copied, ...overrides };
     return planCreate({
-      projectKey, issueTypeId, ...(parentKey ? { parentKey } : {}), fields, idempotencyKey,
+      projectKey: targetProjectKey, issueTypeId, ...(parentKey ? { parentKey } : {}), fields, idempotencyKey,
       sourceIssue: { key: sourceKey, updated: sourceExpectedUpdated, copiedFieldIds: [...copyFieldIds].sort(), overriddenFieldIds: Object.keys(overrides).filter((fieldId) => copyFieldIds.includes(fieldId)).sort() }
     });
   });
@@ -195,6 +206,7 @@ export function createServer(config: Config, client: JiraPort = new JiraClient(c
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
   }, async ({ key, fields, expectedUpdated }) => {
     const issueKey = key.toUpperCase();
+    enforceProjectPolicy(issueKey.split("-")[0] ?? "");
     const requestedFieldIds = Object.keys(fields).sort();
     const [issue, editMetadata] = await Promise.all([
       client.issue(issueKey, [...requestedFieldIds, "updated"]),

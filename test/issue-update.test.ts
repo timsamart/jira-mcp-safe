@@ -65,7 +65,7 @@ test("planning resolves exact metadata and applying patches only requested field
   assert.equal(unknownResponse.isError, true);
   assert.equal(textValue(unknownResponse).error.code, "FIELD_NOT_EDITABLE");
 
-  const movedKeyResponse = await client.callTool({ name: "jira_issue_update_plan", arguments: { key: "OLD-1", expectedUpdated: "v2", fields: { summary: "No redirect writes" } } });
+  const movedKeyResponse = await client.callTool({ name: "jira_issue_update_plan", arguments: { key: "APP-2", expectedUpdated: "v2", fields: { summary: "No redirect writes" } } });
   assert.equal(movedKeyResponse.isError, true);
   assert.match(String(textValue(movedKeyResponse).error.message), /exact canonical key/);
 
