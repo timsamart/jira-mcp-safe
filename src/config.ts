@@ -1,10 +1,16 @@
 import { z } from "zod";
 
+const optionalEmail = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const normalized = value.trim();
+  return normalized === "" || normalized === "{env:JIRA_EMAIL}" ? undefined : normalized;
+}, z.string().email().optional());
+
 const schema = z.object({
   JIRA_BASE_URL: z.string().url(),
   JIRA_DEPLOYMENT: z.enum(["cloud", "data_center"]),
   JIRA_TOKEN: z.string().min(1),
-  JIRA_EMAIL: z.string().email().optional(),
+  JIRA_EMAIL: optionalEmail,
   JIRA_CONNECTION_ID: z.string().min(1).default("default"),
   JIRA_ALLOWED_PROJECTS: z.string().min(1),
   JIRA_ALLOWED_WRITE_FIELDS: z.string().min(1).default("summary,description,assignee,priority,labels,duedate,components,fixVersions"),

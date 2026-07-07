@@ -42,15 +42,22 @@ function Resolve-OpenCodeConfigPath {
   return $jsonPath
 }
 
+function Get-UserOrProcessEnv {
+  param([Parameter(Mandatory = $true)][string]$Name)
+
+  $value = [Environment]::GetEnvironmentVariable($Name, 'User')
+  if ([string]::IsNullOrWhiteSpace($value)) {
+    $value = [Environment]::GetEnvironmentVariable($Name, 'Process')
+  }
+  return $value
+}
+
 function Get-MissingUserEnv {
   param([string[]]$Names)
 
   $missing = @()
   foreach ($name in $Names) {
-    $value = [Environment]::GetEnvironmentVariable($name, 'User')
-    if ([string]::IsNullOrWhiteSpace($value)) {
-      $value = [Environment]::GetEnvironmentVariable($name, 'Process')
-    }
+    $value = Get-UserOrProcessEnv -Name $name
     if ([string]::IsNullOrWhiteSpace($value)) {
       $missing += $name
     }
@@ -172,19 +179,25 @@ if ([string]::IsNullOrWhiteSpace($SkillsPath)) {
 }
 $resolvedSkillsPath = Resolve-InstallPath -Path $SkillsPath
 
+$deployment = Get-UserOrProcessEnv -Name 'JIRA_DEPLOYMENT'
+$cloudEmail = Get-UserOrProcessEnv -Name 'JIRA_EMAIL'
+$serverEnvironment = [ordered]@{
+  JIRA_BASE_URL = '{env:JIRA_BASE_URL}'
+  JIRA_DEPLOYMENT = '{env:JIRA_DEPLOYMENT}'
+  JIRA_TOKEN = '{env:JIRA_TOKEN}'
+  JIRA_CONNECTION_ID = '{env:JIRA_CONNECTION_ID}'
+  JIRA_ALLOWED_PROJECTS = '{env:JIRA_ALLOWED_PROJECTS}'
+  JIRA_ALLOWED_WRITE_FIELDS = '{env:JIRA_ALLOWED_WRITE_FIELDS}'
+}
+if ($deployment -eq 'cloud' -or -not [string]::IsNullOrWhiteSpace($cloudEmail)) {
+  $serverEnvironment['JIRA_EMAIL'] = '{env:JIRA_EMAIL}'
+}
+
 $serverConfig = [ordered]@{
   type = 'local'
   command = @('node', $serverPath)
   enabled = $true
-  environment = [ordered]@{
-    JIRA_BASE_URL = '{env:JIRA_BASE_URL}'
-    JIRA_DEPLOYMENT = '{env:JIRA_DEPLOYMENT}'
-    JIRA_TOKEN = '{env:JIRA_TOKEN}'
-    JIRA_EMAIL = '{env:JIRA_EMAIL}'
-    JIRA_CONNECTION_ID = '{env:JIRA_CONNECTION_ID}'
-    JIRA_ALLOWED_PROJECTS = '{env:JIRA_ALLOWED_PROJECTS}'
-    JIRA_ALLOWED_WRITE_FIELDS = '{env:JIRA_ALLOWED_WRITE_FIELDS}'
-  }
+  environment = $serverEnvironment
 }
 
 # OpenCode uses the last matching permission rule, so the broad rule must stay first.
@@ -233,15 +246,7 @@ if ($missing.Count -gt 0) {
   Write-Warning "Set them with [Environment]::SetEnvironmentVariable(..., 'User') before launching OpenCode."
 }
 
-$deployment = [Environment]::GetEnvironmentVariable('JIRA_DEPLOYMENT', 'User')
-if ([string]::IsNullOrWhiteSpace($deployment)) {
-  $deployment = [Environment]::GetEnvironmentVariable('JIRA_DEPLOYMENT', 'Process')
-}
 if ($deployment -eq 'cloud') {
-  $cloudEmail = [Environment]::GetEnvironmentVariable('JIRA_EMAIL', 'User')
-  if ([string]::IsNullOrWhiteSpace($cloudEmail)) {
-    $cloudEmail = [Environment]::GetEnvironmentVariable('JIRA_EMAIL', 'Process')
-  }
   if ([string]::IsNullOrWhiteSpace($cloudEmail)) {
     Write-Warning 'JIRA_EMAIL is required when JIRA_DEPLOYMENT=cloud.'
   }

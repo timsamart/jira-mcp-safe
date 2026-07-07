@@ -9,7 +9,8 @@
         "JIRA_BASE_URL": "{env:JIRA_BASE_URL}",
         "JIRA_DEPLOYMENT": "{env:JIRA_DEPLOYMENT}",
         "JIRA_TOKEN": "{env:JIRA_TOKEN}",
-        "JIRA_EMAIL": "{env:JIRA_EMAIL}",
+        // Jira Cloud only; omit this entry for Data Center.
+        // "JIRA_EMAIL": "{env:JIRA_EMAIL}",
         "JIRA_CONNECTION_ID": "{env:JIRA_CONNECTION_ID}",
         "JIRA_ALLOWED_PROJECTS": "{env:JIRA_ALLOWED_PROJECTS}",
         "JIRA_ALLOWED_WRITE_FIELDS": "{env:JIRA_ALLOWED_WRITE_FIELDS}"
